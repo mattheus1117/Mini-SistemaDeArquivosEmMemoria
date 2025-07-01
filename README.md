@@ -21,19 +21,19 @@ Este projeto implementa um sistema de arquivos básico simulado em C, utilizando
 
 ## Comandos suportados
 
-| Comando                  | Descrição                                      |
-| ------------------------ | ----------------------------------------------|
-| `mkdir <nome>`           | Cria uma nova pasta no diretório atual        |
-| `touch <nome>`           | Cria um novo arquivo no diretório atual       |
-| `ls`                     | Lista o conteúdo do diretório atual            |
-| `cd <nome>`              | Entra na pasta especificada                     |
-| `cd ..`                  | Volta para a pasta pai                           |
-| `cat <arquivo>`          | Exibe o conteúdo do arquivo                      |
-| `echo <texto> <arquivo>` | Grava (sobrescreve) texto no arquivo            |
-| `rm <nome>`              | Remove arquivo ou pasta                          |
-| `mv <origem> <destino>`  | Move ou renomeia arquivo ou pasta                |
+| Comando                  | Descrição                                        |
+| ------------------------ | ------------------------------------------------|
+| `mkdir <nome>`           | Cria uma nova pasta no diretório atual          |
+| `touch <nome>`           | Cria um novo arquivo no diretório atual         |
+| `ls`                     | Lista o conteúdo do diretório atual              |
+| `cd <nome>`              | Entra na pasta especificada                       |
+| `cd ..`                  | Volta para a pasta pai                            |
+| `cat <arquivo>`          | Exibe o conteúdo do arquivo                       |
+| `echo <texto> <arquivo>` | Grava (sobrescreve) texto no arquivo             |
+| `rm <nome>`              | Remove arquivo ou pasta                           |
+| `mv <origem> <destino>`  | Move ou renomeia arquivo ou pasta                 |
 | `cp <origem> <destino>`  | Copia arquivo para novo nome no mesmo diretório  |
-| `exit`                   | Sai do programa                                 |
+| `exit`                   | Sai do programa                                  |
 
 ---
 
@@ -43,6 +43,16 @@ Este projeto implementa um sistema de arquivos básico simulado em C, utilizando
 - Pastas armazenam ponteiros para seus filhos (arquivos e subpastas).  
 - Arquivos armazenam metadados e conteúdo textual.  
 - Cada nó mantém informações como nome, tipo, permissões, timestamps, e identificador único.
+
+---
+
+## Requisitos Não Implementados
+
+- **Controle de acesso e permissões RWX (Read, Write, Execute)** para usuário, grupo e outros:  
+  Embora exista um campo para permissões, o sistema não realiza checagens nem bloqueios baseados nelas durante as operações.
+
+- **Simulação de alocação de blocos para o conteúdo dos arquivos:**  
+  O conteúdo é armazenado como uma única string dinâmica, sem divisão em blocos ou simulação de alocação contínua ou indexada.
 
 ---
 
