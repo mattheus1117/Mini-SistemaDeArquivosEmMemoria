@@ -106,38 +106,6 @@ void inserirEmPasta(No *pasta, No *novoConteudo) {
 }
 
 
-// Função para imprimir tipo de arquivo
-const char* tipoArquivoStr(TipoArquivo tipo) {
-    switch (tipo) {
-        case TIPO_NUMERICO: return "Numérico";
-        case TIPO_CARACTERE: return "Caractere";
-        case TIPO_BINARIO: return "Binário";
-        case TIPO_PROGRAMA: return "Programa";
-        default: return "Desconhecido";
-    }
-}
-
-
-void imprimirEstrutura(No *inicio, int nivel) {
-    No *atual = inicio;
-
-    while (atual != NULL) {
-        for (int i = 0; i < nivel; i++) printf("  ");
-
-        if (atual->tipo == TIPO_PASTA) {
-            printf("[Pasta] %s\n", atual->pasta.nome);
-            imprimirEstrutura(atual->pasta.diretorio, nivel + 1);
-        } else {
-            Arquivo *arq = &atual->arquivo;
-            printf("[Arquivo] %s | Tamanho: %d | Tipo: %s | ID: %d | Permissão: %d\n",
-                   arq->nome, arq->tamanho, tipoArquivoStr(arq->tipoArquivo), arq->id, arq->permissao);
-        }
-
-        atual = atual->proximo;
-    }
-}
-
-
 void liberarEstrutura(No *inicio) {
     if (inicio == NULL) return;
 
@@ -150,6 +118,170 @@ void liberarEstrutura(No *inicio) {
         free(inicio->arquivo.conteudo);
 
     free(inicio);
+}
+
+
+void removerNo(No **inicio, const char *nome) {
+    No *atual = *inicio;
+
+    while (atual != NULL) {
+        int igual = 0;
+        if (atual->tipo == TIPO_PASTA) {
+            igual = (strcmp(atual->pasta.nome, nome) == 0);
+        } else {
+            igual = (strcmp(atual->arquivo.nome, nome) == 0);
+        }
+
+        if (igual) {
+            // Atualiza ponteiros na lista
+            if (atual->anterior)
+                atual->anterior->proximo = atual->proximo;
+            else
+                *inicio = atual->proximo;
+
+            if (atual->proximo)
+                atual->proximo->anterior = atual->anterior;
+
+            // Se for pasta, libera subdiretório recursivamente
+            if (atual->tipo == TIPO_PASTA && atual->pasta.diretorio != NULL)
+                liberarEstrutura(atual->pasta.diretorio);
+
+            // Libera conteúdo se for arquivo
+            if (atual->tipo == TIPO_ARQUIVO && atual->arquivo.conteudo != NULL)
+                free(atual->arquivo.conteudo);
+
+            free(atual);
+
+            printf("'%s' removido com sucesso.\n", nome);
+            return;
+        }
+        atual = atual->proximo;
+    }
+
+    printf("Arquivo ou pasta '%s' não encontrado.\n", nome);
+}
+
+
+void moverOuRenomear(No *pastaAtual, const char *nome1, const char *nome2) {
+    // Procurar o nó origem na pasta atual
+    No *atual = pastaAtual->pasta.diretorio;
+    No *origem = NULL;
+    while (atual != NULL) {
+        const char *nome = (atual->tipo == TIPO_PASTA) ? atual->pasta.nome : atual->arquivo.nome;
+        if (strcmp(nome, nome1) == 0) {
+            origem = atual;
+            break;
+        }
+        atual = atual->proximo;
+    }
+
+    if (!origem) {
+        printf("Erro: '%s' não encontrado no diretório atual.\n", nome1);
+        return;
+    }
+
+    if (strcmp(nome1, nome2) == 0) {
+        printf("Erro: origem e destino são iguais.\n");
+        return;
+    }
+
+    // Verificar se nome2 é ".." (pai)
+    No *destino = NULL;
+    if (strcmp(nome2, "..") == 0 && pastaAtual->pasta.pai != NULL) {
+        destino = pastaAtual->pasta.pai;
+    }
+
+    // Verificar se nome2 é uma subpasta
+    if (!destino) {
+        atual = pastaAtual->pasta.diretorio;
+        while (atual != NULL) {
+            if (atual->tipo == TIPO_PASTA && strcmp(atual->pasta.nome, nome2) == 0) {
+                destino = atual;
+                break;
+            }
+            atual = atual->proximo;
+        }
+    }
+
+    // Se nome2 for pasta → mover
+    if (destino) {
+        // Verifica se já existe um item com mesmo nome no destino
+        No *checar = destino->pasta.diretorio;
+        const char *nomeOrigem = (origem->tipo == TIPO_PASTA) ? origem->pasta.nome : origem->arquivo.nome;
+        while (checar != NULL) {
+            const char *nomeCheck = (checar->tipo == TIPO_PASTA) ? checar->pasta.nome : checar->arquivo.nome;
+            if (strcmp(nomeCheck, nomeOrigem) == 0) {
+                printf("Erro: já existe '%s' em '%s'.\n", nomeOrigem, nome2);
+                return;
+            }
+            checar = checar->proximo;
+        }
+
+        // Remover da lista atual
+        if (origem->anterior)
+            origem->anterior->proximo = origem->proximo;
+        else
+            pastaAtual->pasta.diretorio = origem->proximo;
+
+        if (origem->proximo)
+            origem->proximo->anterior = origem->anterior;
+
+        origem->anterior = origem->proximo = NULL;
+
+        inserirEmPasta(destino, origem);
+        printf("'%s' movido para '%s'.\n", nome1, destino->pasta.nome);
+        return;
+    }
+
+    // Renomear (verifica se nome2 já existe)
+    atual = pastaAtual->pasta.diretorio;
+    while (atual != NULL) {
+        const char *nomeExistente = (atual->tipo == TIPO_PASTA) ? atual->pasta.nome : atual->arquivo.nome;
+        if (strcmp(nomeExistente, nome2) == 0) {
+            printf("Erro: já existe um item chamado '%s'.\n", nome2);
+            return;
+        }
+        atual = atual->proximo;
+    }
+
+    // Aplicar renomeação
+    if (origem->tipo == TIPO_PASTA)
+        strcpy(origem->pasta.nome, nome2);
+    else
+        strcpy(origem->arquivo.nome, nome2);
+
+    printf("'%s' renomeado para '%s'.\n", nome1, nome2);
+}
+
+
+
+// ---------------------------- TERMINAL ----------------------------
+
+
+const char* tipoArquivoStr(TipoArquivo tipo) {
+    switch (tipo) {
+        case TIPO_NUMERICO: return "Numérico";
+        case TIPO_CARACTERE: return "Caractere";
+        case TIPO_BINARIO: return "Binário";
+        case TIPO_PROGRAMA: return "Programa";
+        default: return "Desconhecido";
+    }
+}
+
+
+void lsSimples(No *diretorio) {
+    No *atual = diretorio;
+
+    while (atual != NULL) {
+        if (atual->tipo == TIPO_PASTA) {
+            printf("[Pasta] %s\n", atual->pasta.nome);
+        } else {
+            Arquivo *arq = &atual->arquivo;
+            printf("[Arquivo] %s | Tamanho: %d | Tipo: %s | ID: %d | Permissão: %d\n",
+                   arq->nome, arq->tamanho, tipoArquivoStr(arq->tipoArquivo), arq->id, arq->permissao);
+        }
+        atual = atual->proximo;
+    }
 }
 
 
@@ -176,8 +308,8 @@ void loopComandos(No *raiz) {
             inserirEmPasta(pastaAtual, novo);
         }
 
-        else if (strncmp(comando, "ls", 2) == 0) {
-            imprimirEstrutura(pastaAtual->pasta.diretorio, 1);
+        else if (strncmp(comando, "ls", 2) == 0) { 
+            lsSimples(pastaAtual->pasta.diretorio);
         }
 
         else if (strncmp(comando, "cd ", 3) == 0) {
@@ -223,36 +355,50 @@ void loopComandos(No *raiz) {
         }
 
         else if (strncmp(comando, "echo ", 5) == 0) {
-            char *texto = comando + 5;
+            char *textoCompleto = comando + 5;
 
-            // Procura o ' > ' para decidir se é gravação ou só imprimir
-            char *arrow = strstr(texto, " > ");
-
-            if (arrow == NULL) {
-                // Só imprimir o texto
-                printf("%s\n", texto);
-            } else {
-                // Separar texto e nome do arquivo
-                *arrow = '\0'; // termina o texto aqui
-                char *nome = arrow + 3;
-
-                // Procurar o arquivo na pasta atual
-                No *aux = pastaAtual->pasta.diretorio;
-                int encontrado = 0;
-                while (aux != NULL) {
-                    if (aux->tipo == TIPO_ARQUIVO && strcmp(aux->arquivo.nome, nome) == 0) {
-                        free(aux->arquivo.conteudo);
-                        aux->arquivo.conteudo = strdup(texto);
-                        aux->arquivo.modificado = time(NULL);
-                        encontrado = 1;
-                        break;
-                    }
-                    aux = aux->proximo;
-                }
-                if (!encontrado) {
-                    printf("Arquivo não encontrado.\n");
-                }
+            // Encontrar a última palavra (nome do arquivo)
+            char *ultimaEspaco = strrchr(textoCompleto, ' ');
+            if (ultimaEspaco == NULL) {
+                printf("Uso: echo <texto> <arquivo>\n");
+                continue;
             }
+
+            *ultimaEspaco = '\0'; // termina o texto aqui
+            char *nome = ultimaEspaco + 1;
+            char *texto = textoCompleto;
+
+            // Procurar o arquivo na pasta atual
+            No *aux = pastaAtual->pasta.diretorio;
+            int encontrado = 0;
+            while (aux != NULL) {
+                if (aux->tipo == TIPO_ARQUIVO && strcmp(aux->arquivo.nome, nome) == 0) {
+                    free(aux->arquivo.conteudo);
+                    aux->arquivo.conteudo = strdup(texto);
+                    aux->arquivo.modificado = time(NULL);
+                    encontrado = 1;
+                    break;
+                }
+                aux = aux->proximo;
+            }
+
+            if (!encontrado) {
+                printf("Arquivo '%s' não encontrado.\n", nome);
+            }
+        }
+
+        else if (strncmp(comando, "rm ", 3) == 0) {
+            char *nome = comando + 3;
+            removerNo(&(pastaAtual->pasta.diretorio), nome);
+        }
+
+        else if (strncmp(comando, "mv ", 3) == 0) {
+            char nome1[100], nome2[100];
+            if (sscanf(comando + 3, "%s %s", nome1, nome2) != 2) {
+                printf("Uso: mv <origem> <destino>\n");
+                continue;
+            }
+            moverOuRenomear(pastaAtual, nome1, nome2);
         }
 
         else {
