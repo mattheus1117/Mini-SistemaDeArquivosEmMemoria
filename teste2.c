@@ -106,47 +106,6 @@ void inserirEmPasta(No *pasta, No *novoConteudo) {
 }
 
 
-void removerNo(No **inicio, const char *nome) {
-    No *atual = *inicio;
-
-    while (atual != NULL) {
-        int igual = 0;
-        if (atual->tipo == TIPO_PASTA) {
-            igual = (strcmp(atual->pasta.nome, nome) == 0);
-        } else {
-            igual = (strcmp(atual->arquivo.nome, nome) == 0);
-        }
-
-        if (igual) {
-            // Atualiza ponteiros na lista
-            if (atual->anterior)
-                atual->anterior->proximo = atual->proximo;
-            else
-                *inicio = atual->proximo;
-
-            if (atual->proximo)
-                atual->proximo->anterior = atual->anterior;
-
-            // Se for pasta, libera subdiretório recursivamente
-            if (atual->tipo == TIPO_PASTA && atual->pasta.diretorio != NULL)
-                liberarEstrutura(atual->pasta.diretorio);
-
-            // Libera conteúdo se for arquivo
-            if (atual->tipo == TIPO_ARQUIVO && atual->arquivo.conteudo != NULL)
-                free(atual->arquivo.conteudo);
-
-            free(atual);
-
-            printf("'%s' removido com sucesso.\n", nome);
-            return;
-        }
-        atual = atual->proximo;
-    }
-
-    printf("Arquivo ou pasta '%s' não encontrado.\n", nome);
-}
-
-
 // Função para imprimir tipo de arquivo
 const char* tipoArquivoStr(TipoArquivo tipo) {
     switch (tipo) {
@@ -265,10 +224,16 @@ void loopComandos(No *raiz) {
 
         else if (strncmp(comando, "echo ", 5) == 0) {
             char *texto = comando + 5;
+
+            // Procura o ' > ' para decidir se é gravação ou só imprimir
             char *arrow = strstr(texto, " > ");
 
-            if (arrow != NULL) {
-                *arrow = '\0';  // separa o texto do nome do arquivo
+            if (arrow == NULL) {
+                // Só imprimir o texto
+                printf("%s\n", texto);
+            } else {
+                // Separar texto e nome do arquivo
+                *arrow = '\0'; // termina o texto aqui
                 char *nome = arrow + 3;
 
                 // Procurar o arquivo na pasta atual
@@ -287,14 +252,7 @@ void loopComandos(No *raiz) {
                 if (!encontrado) {
                     printf("Arquivo não encontrado.\n");
                 }
-            } else {
-                printf("Uso correto: echo <texto> > <arquivo>\n");
             }
-        }
-
-        else if (strncmp(comando, "rm ", 3) == 0) {
-            char *nome = comando + 3;
-            removerNo(&(pastaAtual->pasta.diretorio), nome);
         }
 
         else {

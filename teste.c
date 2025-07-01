@@ -30,8 +30,6 @@ typedef struct {
     int permissao;           // Representação simples de permissões
 } Arquivo;
 
-
-// Estrutura do nó
 typedef struct No {
     TipoNo tipo;
     struct No *anterior;
@@ -48,7 +46,7 @@ typedef struct No {
     };
 } No;
 
-
+// ---------------------------- FUNÇÕES ----------------------------
 
 // Criar um novo arquivo
 No* criarArquivo(const char *nome, int tamanho, TipoArquivo tipo, int id, int permissao) {
@@ -148,6 +146,7 @@ void liberarEstrutura(No *inicio) {
     free(inicio);
 }
 
+
 void loopComandos(No *raiz) {
     No *pastaAtual = raiz;
     char comando[256];
@@ -222,6 +221,8 @@ void loopComandos(No *raiz) {
     }
 }
 
+
+// ----------------------------- MAIN -----------------------------
 
 int main() {
     No *raiz = criarPasta("Raiz", NULL);
