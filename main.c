@@ -208,6 +208,46 @@ void moverOuRenomear(No *pastaAtual, const char *nome1, const char *nome2) {
     printf("'%s' renomeado para '%s'.\n", nome1, nome2);
 }
 
+
+// Implementar comando cp
+void copiarArquivo(No *pastaAtual, const char *origemNome, const char *destinoNome) {
+    // procura arquivo origem na pasta atual
+    No *aux = pastaAtual->pasta.diretorio;
+    No *origem = NULL;
+    while (aux != NULL) {
+        if (aux->tipo == TIPO_ARQUIVO && strcmp(aux->arquivo.nome, origemNome) == 0) {
+            origem = aux;
+            break;
+        }
+        aux = aux->proximo;
+    }
+
+    if (!origem) {
+        printf("Erro: arquivo '%s' não encontrado.\n", origemNome);
+        return;
+    }
+
+    // verificar se já existe arquivo destino com o nome
+    aux = pastaAtual->pasta.diretorio;
+    while (aux != NULL) {
+        if (aux->tipo == TIPO_ARQUIVO && strcmp(aux->arquivo.nome, destinoNome) == 0) {
+            printf("Erro: arquivo '%s' já existe.\n", destinoNome);
+            return;
+        }
+        aux = aux->proximo;
+    }
+
+    // criar cópia
+    No *novo = criarArquivo(destinoNome, origem->arquivo.tamanho, origem->arquivo.tipoArquivo, rand() % 1000, origem->arquivo.permissao);
+    if (origem->arquivo.conteudo != NULL) {
+        novo->arquivo.conteudo = strdup(origem->arquivo.conteudo);
+    }
+
+    inserirEmPasta(pastaAtual, novo);
+    printf("Arquivo '%s' copiado para '%s'.\n", origemNome, destinoNome);
+}
+
+
 // -------------------- TERMINAL --------------------
 
 const char* tipoArquivoStr(TipoArquivo tipo) {
@@ -309,6 +349,15 @@ void loopComandos(No *raiz) {
                 continue;
             }
             moverOuRenomear(pastaAtual, nome1, nome2);
+        }
+
+        else if (strncmp(comando, "cp ", 3) == 0) {
+            char origem[100], destino[100];
+            if (sscanf(comando + 3, "%s %s", origem, destino) != 2) {
+                printf("Uso: cp <origem> <destino>\n");
+                continue;
+            }
+            copiarArquivo(pastaAtual, origem, destino);
         }
 
         else
